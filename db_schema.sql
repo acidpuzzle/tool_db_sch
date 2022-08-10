@@ -10,7 +10,8 @@ CREATE TABLE "school"(
     "prime_id" INTEGER NULL,
     "project_id" INTEGER NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    "active" BOOLEAN NULL
 );
 ALTER TABLE
     "school" ADD PRIMARY KEY("id");
@@ -27,7 +28,8 @@ CREATE TABLE "router"(
     "model_id" INTEGER NULL,
     "os_version" VARCHAR(255) NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    "available" TIMESTAMP NULL
 );
 ALTER TABLE
     "router" ADD PRIMARY KEY("id");
@@ -61,7 +63,8 @@ CREATE TABLE "switch"(
     "model_id" INTEGER NULL,
     "os_version" VARCHAR(255) NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    "available" TIMESTAMP NULL
 );
 ALTER TABLE
     "switch" ADD PRIMARY KEY("id");
@@ -77,6 +80,7 @@ CREATE TABLE "model"(
     "id" SERIAL NOT NULL,
     "vendor_id" INTEGER NOT NULL,
     "name" VARCHAR(255) NOT NULL,
+    "credentials_id" INTEGER NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updated" TIMESTAMP NULL
 );
@@ -170,7 +174,8 @@ CREATE TABLE "wlc"(
     "mgmt_ip" INET NOT NULL,
     "os_version" VARCHAR(255) NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    "available" TIMESTAMP NULL
 );
 ALTER TABLE
     "wlc" ADD PRIMARY KEY("id");
@@ -190,7 +195,8 @@ CREATE TABLE "prime"(
     "ip" INET NOT NULL,
     "stack_master_id" INTEGER NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    "available" TIMESTAMP NULL
 );
 ALTER TABLE
     "prime" ADD PRIMARY KEY("id");
@@ -209,7 +215,8 @@ CREATE TABLE "ap"(
     "school_id" INTEGER NOT NULL,
     "model_id" INTEGER NOT NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    "available" TIMESTAMP NULL
 );
 ALTER TABLE
     "ap" ADD PRIMARY KEY("id");
@@ -245,6 +252,21 @@ ALTER TABLE
 ALTER TABLE
     "sch_net" ADD PRIMARY KEY("id");
 
+/* PARAMS FOR REMOTE CONNECTION */
+CREATE TABLE "credentials"(
+    "id" SERIAL NOT NULL,
+    "username" VARCHAR(255) NOT NULL,
+    "password" VARCHAR(255) NOT NULL,
+    "enable_pass" VARCHAR(255) NULL,
+    "netmiko_device" VARCHAR(255) NULL,
+    "scrapli_driver" VARCHAR(255) NULL,
+    "scrapli_transport" VARCHAR(255) NULL,
+    "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updated" TIMESTAMP NULL
+);
+ALTER TABLE
+    "credentials" ADD PRIMARY KEY("id");
+
 /* TABLE RELATIONSHIPS */
 ALTER TABLE
     "switch" ADD CONSTRAINT "switch_school_id_foreign" FOREIGN KEY("school_id") REFERENCES "school"("id");
@@ -260,6 +282,8 @@ ALTER TABLE
     "router" ADD CONSTRAINT "router_school_id_foreign" FOREIGN KEY("school_id") REFERENCES "school"("id");
 ALTER TABLE
     "model" ADD CONSTRAINT "model_vendor_id_foreign" FOREIGN KEY("vendor_id") REFERENCES "vendor"("id");
+ALTER TABLE
+    "model" ADD CONSTRAINT "model_credentials_id_foreign" FOREIGN KEY("credentials_id") REFERENCES "credentials"("id");
 ALTER TABLE
     "switch" ADD CONSTRAINT "switch_model_id_foreign" FOREIGN KEY("model_id") REFERENCES "model"("id");
 ALTER TABLE
@@ -300,12 +324,14 @@ alter function trigger_set_timestamp() owner to sch_db_admin;
 /* UPDATE TRIGGER TO TABLE */
 create trigger set_timestamp
     before update
+    of id, name, short_name, full_name, address, district_id, wlc_id, prime_id, project_id
     on school
     for each row
 execute procedure trigger_set_timestamp();
 
 create trigger set_timestamp
     before update
+    of id, school_id, name, sn, ip, model_id, os_version
     on router
     for each row
 execute procedure trigger_set_timestamp();
@@ -318,6 +344,7 @@ execute procedure trigger_set_timestamp();
 
 create trigger set_timestamp
     before update
+    of id, school_id, name, sn, ip, mac, model_id, os_version
     on switch
     for each row
 execute procedure trigger_set_timestamp();
@@ -360,18 +387,21 @@ execute procedure trigger_set_timestamp();
 
 create trigger set_timestamp
     before update
+    of id, name, ip, option_43, mgmt_ip, os_version
     on wlc
     for each row
 execute procedure trigger_set_timestamp();
 
 create trigger set_timestamp
     before update
+    of id, mac, sn, name, ip, school_id, model_id
     on ap
     for each row
 execute procedure trigger_set_timestamp();
 
 create trigger set_timestamp
     before update
+    of id, name, ip, stack_master_id
     on prime
     for each row
 execute procedure trigger_set_timestamp();
@@ -385,6 +415,13 @@ execute procedure trigger_set_timestamp();
 create trigger set_timestamp
     before update
     on sch_net
+    for each row
+execute procedure trigger_set_timestamp();
+
+create trigger set_timestamp
+    before update
+    of id, username, password, enable_pass, netmiko_device, scrapli_driver, scrapli_transport
+    on credentials
     for each row
 execute procedure trigger_set_timestamp();
 

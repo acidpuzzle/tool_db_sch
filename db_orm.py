@@ -11,9 +11,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INET, CIDR, MACADDR
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean, UniqueConstraint
 
-
 logger = logging.getLogger(__name__)
-
 
 db_url = os.environ.get("NEW_SCHOOL_DATABASE")
 db_engine = create_engine(db_url)
@@ -25,17 +23,18 @@ class School(database):
     School table map
     """
     __tablename__ = 'school'
-    id = Column(Integer, primary_key=True)                              # SERIAL NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)             # VARCHAR(255) NOT NULL,
-    short_name = Column(String(255))                                    # VARCHAR(255) NULL
-    full_name = Column(String(255))                                     # VARCHAR(255) NULL
-    address = Column(String(255))                                       # VARCHAR(255) NULL,
-    district_id = Column(Integer, ForeignKey('district.id'))            # INTEGER NULL,
-    wlc_id = Column(Integer, ForeignKey('wlc.id'))                      # INTEGER NULL,
-    prime_id = Column(Integer, ForeignKey('prime.id'))                  # INTEGER NOT NULL,
-    project_id = Column(Integer, ForeignKey('project.id'))              # INTEGER NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
+    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
+    short_name = Column(String(255))  # VARCHAR(255) NULL
+    full_name = Column(String(255))  # VARCHAR(255) NULL
+    address = Column(String(255))  # VARCHAR(255) NULL,
+    district_id = Column(Integer, ForeignKey('district.id'))  # INTEGER NULL,
+    wlc_id = Column(Integer, ForeignKey('wlc.id'))  # INTEGER NULL,
+    prime_id = Column(Integer, ForeignKey('prime.id'))  # INTEGER NOT NULL,
+    project_id = Column(Integer, ForeignKey('project.id'))  # INTEGER NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                          # TIMESTAMP NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
+    active = Column(Boolean)  # BOOLEAN NULL
 
     def __init__(self, *args, **kwargs):
         super(School, self).__init__(*args, **kwargs)
@@ -49,7 +48,7 @@ class School(database):
 
     district = relationship("District", back_populates="school")
     wlc = relationship("WLC", back_populates="schools", uselist=False)
-    router = relationship("Router",  back_populates="school")
+    router = relationship("Router", back_populates="school")
     switches = relationship("Switch", back_populates="school")
     prime = relationship("Prime", back_populates="schools", uselist=False)
     ap = relationship("AP", back_populates="school")
@@ -67,15 +66,16 @@ class Router(database):
     Routers table map
     """
     __tablename__ = 'router'
-    id = Column(Integer, primary_key=True)                               # SERIAL NOT NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)              # VARCHAR(255) NULL,
-    sn = Column(String(255), unique=True, nullable=False)                # VARCHAR(255) NULL,
-    ip = Column(INET, unique=True, nullable=False)                       # INET NOT NULL,
-    model_id = Column(Integer, ForeignKey('model.id'))                   # INTEGER NULL,
-    os_version = Column(String(255))                                     # VARCHAR(255) NULL,
-    created = Column(DateTime, default=datetime.now(), nullable=False)   # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                           # TIMESTAMP NULL
+    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
+    sn = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
+    ip = Column(INET, unique=True, nullable=False)  # INET NOT NULL,
+    model_id = Column(Integer, ForeignKey('model.id'))  # INTEGER NULL,
+    os_version = Column(String(255))  # VARCHAR(255) NULL,
+    created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated = Column(DateTime)  # TIMESTAMP NULL
+    available = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(Router, self).__init__(*args, **kwargs)
@@ -90,16 +90,35 @@ class Router(database):
     school = relationship("School", back_populates="router")
     model = relationship("Model", back_populates="router")
 
+    def netmiko_params(self):
+        return netmiko_params(
+            self.model.creds.netmiko_device,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
+    def scrapli_params(self):
+        return scrapli_params(
+            self.model.creds.scrapli_driver,
+            self.model.creds.scrapli_transport,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
 
 class Vendor(database):
     """
     Device Vedors table map
     """
     __tablename__ = 'vendor'
-    id = Column(Integer, primary_key=True)                              # SERIAL NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)             # VARCHAR(255) NOT NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
+    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                          # TIMESTAMP NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(Vendor, self).__init__(*args, **kwargs)
@@ -119,16 +138,17 @@ class Switch(database):
     Switches table map
     """
     __tablename__ = 'switch'
-    id = Column(Integer, primary_key=True)                               # SERIAL NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)              # VARCHAR(255) NULL,
-    sn = Column(String(255), unique=True, nullable=False)                # VARCHAR(255) NULL,
-    ip = Column(INET, unique=True, nullable=False)                       # INET NOT NULL,
-    mac = Column(MACADDR)                                                # MACADDR NULL,
-    model_id = Column(Integer, ForeignKey('model.id'))                   # INTEGER NULL,
-    os_version = Column(String(255))                                     # VARCHAR(255) NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
+    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
+    sn = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
+    ip = Column(INET, unique=True, nullable=False)  # INET NOT NULL,
+    mac = Column(MACADDR)  # MACADDR NULL,
+    model_id = Column(Integer, ForeignKey('model.id'))  # INTEGER NULL,
+    os_version = Column(String(255))  # VARCHAR(255) NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
-    created = Column(DateTime, default=datetime.now(), nullable=False)   # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                           # TIMESTAMP NULL
+    created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated = Column(DateTime)  # TIMESTAMP NULL
+    available = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(Switch, self).__init__(*args, **kwargs)
@@ -143,17 +163,37 @@ class Switch(database):
     school = relationship("School", back_populates="switches")
     model = relationship("Model", back_populates="switch")
 
+    def netmiko_params(self):
+        return netmiko_params(
+            self.model.creds.netmiko_device,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
+    def scrapli_params(self):
+        return scrapli_params(
+            self.model.creds.scrapli_driver,
+            self.model.creds.scrapli_transport,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
 
 class Model(database):
     """
     Device model table map
     """
     __tablename__ = 'model'
-    id = Column(Integer, primary_key=True)                                # SERIAL NOT NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     vendor_id = Column(Integer, ForeignKey('vendor.id'), nullable=False)  # INTEGER NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)               # VARCHAR(255) NOT NULL,
-    created = Column(DateTime, default=datetime.now(), nullable=False)    # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-    updated = Column(DateTime)                                            # TIMESTAMP NULL
+    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
+    credentials_id = Column(Integer, ForeignKey('credentials.id'))  # INTEGER NULL,
+    created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(Model, self).__init__(*args, **kwargs)
@@ -165,6 +205,7 @@ class Model(database):
     def __str__(self):
         return f"Model(name='{self.name}')"
 
+    creds = relationship("Credentials", back_populates="model")
     vendor = relationship("Vendor", back_populates="model")
     router = relationship("Router", back_populates="model")
     switch = relationship("Switch", back_populates="model")
@@ -176,13 +217,13 @@ class District(database):
     District table map
     """
     __tablename__ = 'district'
-    id = Column(Integer, primary_key=True)                              # SERIAL NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)             # VARCHAR(255) NOT NULL,
-    name_en = Column(String(255), unique=True, nullable=False)          # VARCHAR(255) NOT NULL,
-    full_name = Column(String(255), unique=True, nullable=False)        # VARCHAR(255) NULL,
-    fqdn = Column(String(255))                                          # VARCHAR(255) NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
+    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
+    name_en = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
+    full_name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
+    fqdn = Column(String(255))  # VARCHAR(255) NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                          # TIMESTAMP NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(District, self).__init__(*args, **kwargs)
@@ -202,14 +243,14 @@ class KMSNet(database):
     KMS Networl table map
     """
     __tablename__ = 'kms_net'
-    id = Column(Integer, primary_key=True)                              # SERIAL NOT NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
-    network = Column(CIDR, unique=True, nullable=False)                 # CIDR NOT NULL,
-    vlan30 = Column(CIDR)                                               # CIDR NULL,
-    vlan60 = Column(CIDR)                                               # CIDR NULL,
-    vlan70 = Column(CIDR)                                               # CIDR NULL,
+    network = Column(CIDR, unique=True, nullable=False)  # CIDR NOT NULL,
+    vlan30 = Column(CIDR)  # CIDR NULL,
+    vlan60 = Column(CIDR)  # CIDR NULL,
+    vlan70 = Column(CIDR)  # CIDR NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                          # TIMESTAMP NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(KMSNet, self).__init__(*args, **kwargs)
@@ -229,13 +270,13 @@ class UsersNet(database):
     Inner school networl table map
     """
     __tablename__ = 'users_net'
-    id = Column(Integer, primary_key=True)                              # SERIAL NOT NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
-    network = Column(CIDR, nullable=False)                              # CIDR NOT NULL,
-    vlan40 = Column(CIDR)                                               # CIDR NULL,
-    vlan50 = Column(CIDR)                                               # CIDR NULL,
+    network = Column(CIDR, nullable=False)  # CIDR NOT NULL,
+    vlan40 = Column(CIDR)  # CIDR NULL,
+    vlan50 = Column(CIDR)  # CIDR NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                          # TIMESTAMP NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(UsersNet, self).__init__(*args, **kwargs)
@@ -255,11 +296,11 @@ class RTNet(database):
     RT Networl tablr map
     """
     __tablename__ = 'rt_net'
-    id = Column(Integer, primary_key=True)                                # SERIAL NOT NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
-    network = Column(CIDR, unique=True, nullable=False)                   # CIDR NOT NULL,
-    created = Column(DateTime, default=datetime.now(), nullable=False)    # timestamp default now() NOT NULL,
-    updated = Column(DateTime)                                            # timestamp NULL
+    network = Column(CIDR, unique=True, nullable=False)  # CIDR NOT NULL,
+    created = Column(DateTime, default=datetime.now(), nullable=False)  # timestamp default now() NOT NULL,
+    updated = Column(DateTime)  # timestamp NULL
 
     def __init__(self, *args, **kwargs):
         super(RTNet, self).__init__(*args, **kwargs)
@@ -279,11 +320,11 @@ class MGTSNet(database):
     MGTS table network
     """
     __tablename__ = 'mgts_net'
-    id = Column(Integer, primary_key=True)                                # SERIAL NOT NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
-    network = Column(CIDR, unique=True, nullable=False)                   # CIDR NOT NULL,
-    created = Column(DateTime, default=datetime.now(), nullable=False)    # timestamp default now() NOT NULL,
-    updated = Column(DateTime)                                            # timestamp NULL
+    network = Column(CIDR, unique=True, nullable=False)  # CIDR NOT NULL,
+    created = Column(DateTime, default=datetime.now(), nullable=False)  # timestamp default now() NOT NULL,
+    updated = Column(DateTime)  # timestamp NULL
 
     def __init__(self, *args, **kwargs):
         super(MGTSNet, self).__init__(*args, **kwargs)
@@ -303,14 +344,15 @@ class WLC(database):
     WLC table map
     """
     __tablename__ = 'wlc'
-    id = Column(Integer, primary_key=True)                              # SERIAL NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)             # VARCHAR(255) NOT NULL,
-    ip = Column(INET, unique=True, nullable=False)                      # INET NOT NULL,
-    option_43 = Column(String(255), unique=True, nullable=False)        # VARCHAR(255) NOT NULL,
-    mgmt_ip = Column(INET, unique=True, nullable=False)                 # INET NOT NULL,
-    os_version = Column(String(60))                                     # VARCHAR(255) NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
+    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
+    ip = Column(INET, unique=True, nullable=False)  # INET NOT NULL,
+    option_43 = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
+    mgmt_ip = Column(INET, unique=True, nullable=False)  # INET NOT NULL,
+    os_version = Column(String(60))  # VARCHAR(255) NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                          # TIMESTAMP NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
+    available = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(WLC, self).__init__(*args, **kwargs)
@@ -324,18 +366,38 @@ class WLC(database):
 
     schools = relationship("School", back_populates="wlc")
 
+    def netmiko_params(self):
+        return netmiko_params(
+            self.model.creds.netmiko_device,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
+    def scrapli_params(self):
+        return scrapli_params(
+            self.model.creds.scrapli_driver,
+            self.model.creds.scrapli_transport,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
 
 class Prime(database):
     """
     Prime controller table map
     """
     __tablename__ = 'prime'
-    id = Column(Integer, primary_key=True)                              # SERIAL NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)             # VARCHAR(255) NOT NULL,
-    ip = Column(INET, unique=True, nullable=False)                      # INET NOT NULL,
-    stack_master_id = Column(Integer, ForeignKey('prime.id'))           # INTEGER NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
+    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
+    ip = Column(INET, unique=True, nullable=False)  # INET NOT NULL,
+    stack_master_id = Column(Integer, ForeignKey('prime.id'))  # INTEGER NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                          # TIMESTAMP NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
+    available = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(Prime, self).__init__(*args, **kwargs)
@@ -350,21 +412,41 @@ class Prime(database):
     schools = relationship("School", back_populates="prime")
     stack_master = relationship("Prime")
 
+    def netmiko_params(self):
+        return netmiko_params(
+            self.model.creds.netmiko_device,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
+    def scrapli_params(self):
+        return scrapli_params(
+            self.model.creds.scrapli_driver,
+            self.model.creds.scrapli_transport,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
 
 class AP(database):
     """
     Access Point table map
     """
     __tablename__ = 'ap'
-    id = Column(Integer, primary_key=True)                              # SERIAL NOT NULL,
-    mac = Column(MACADDR, unique=True, nullable=False)                  # MACADDR NOT NULL,
-    sn = Column(String(255), unique=True, nullable=False)               # VARCHAR(255) NOT NULL,
-    name = Column(String(255), nullable=False)                          # VARCHAR(255) NOT NULL,
-    ip = Column(INET)                                                   # INET NOT NULL,
-    school_id = Column(Integer, ForeignKey('school.id'))                # INTEGER NOT NULL,
-    model_id = Column(Integer, ForeignKey('model.id'))                  # INTEGER NULL,
+    id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
+    mac = Column(MACADDR, unique=True, nullable=False)  # MACADDR NOT NULL,
+    sn = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
+    name = Column(String(255), nullable=False)  # VARCHAR(255) NOT NULL,
+    ip = Column(INET)  # INET NOT NULL,
+    school_id = Column(Integer, ForeignKey('school.id'))  # INTEGER NOT NULL,
+    model_id = Column(Integer, ForeignKey('model.id'))  # INTEGER NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                          # TIMESTAMP NULL
+    updated = Column(DateTime)  # TIMESTAMP NULL
+    available = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(AP, self).__init__(*args, **kwargs)
@@ -379,16 +461,35 @@ class AP(database):
     school = relationship("School", back_populates="ap")
     model = relationship("Model", back_populates="ap")
 
+    def netmiko_params(self):
+        return netmiko_params(
+            self.model.creds.netmiko_device,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
+    def scrapli_params(self):
+        return scrapli_params(
+            self.model.creds.scrapli_driver,
+            self.model.creds.scrapli_transport,
+            self.ip,
+            self.model.creds.username,
+            self.model.creds.password,
+            self.model.creds.enable_pass,
+        )
+
 
 class Project(database):
     """
     Project year table map
     """
     __tablename__ = 'project'
-    id = Column(Integer, primary_key=True)                               # INTEGER NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)              # CHAR(255) NOT NULL,
-    created = Column(DateTime, default=datetime.now(), nullable=False)   # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                           # TIMESTAMP NULL
+    id = Column(Integer, primary_key=True)  # INTEGER NOT NULL,
+    name = Column(String(255), unique=True, nullable=False)  # CHAR(255) NOT NULL,
+    created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated = Column(DateTime)  # TIMESTAMP NULL
 
     def __init__(self, *args, **kwargs):
         super(Project, self).__init__(*args, **kwargs)
@@ -408,13 +509,13 @@ class SchNet(database):
     Project year table map
     """
     __tablename__ = 'sch_net'
-    id = Column(Integer, primary_key=True)                               # INTEGER NOT NULL,
+    id = Column(Integer, primary_key=True)  # INTEGER NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
-    network = Column(INET, nullable=False)                               # INET NOT NULL,
-    description = Column(String(255))                                    # VARCHAR(255) NULL,
-    kms = Column(Boolean, default=False)                                 # BOOLEAN DEFAULT FALSE NOT NULL,
-    created = Column(DateTime, default=datetime.now())                   # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated = Column(DateTime)                                           # TIMESTAMP NULL
+    network = Column(INET, nullable=False)  # INET NOT NULL,
+    description = Column(String(255))  # VARCHAR(255) NULL,
+    kms = Column(Boolean, default=False)  # BOOLEAN DEFAULT FALSE NOT NULL,
+    created = Column(DateTime, default=datetime.now())  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated = Column(DateTime)  # TIMESTAMP NULL
 
     UniqueConstraint("school_id", "network", name="sch_net_school_id_network_unique")
 
@@ -429,6 +530,31 @@ class SchNet(database):
         return f"SchNet(network='{self.network}')"
 
     school = relationship("School", back_populates="sch_net")
+
+
+class Credentials(database):
+    __tablename__ = 'credentials'
+    id = Column(Integer, primary_key=True)  # INTEGER NOT NULL,
+    username = Column(String(255), nullable=False)  # VARCHAR(255) NOT NULL,
+    password = Column(String(255), nullable=False)  # VARCHAR(255) NOT NULL,
+    enable_pass = Column(String(255))  # VARCHAR(255) NULL,
+    netmiko_device = Column(String(255))  # VARCHAR(255) NULL,
+    scrapli_driver = Column(String(255))  # VARCHAR(255) NULL,
+    scrapli_transport = Column(String(255))  # VARCHAR(255) NULL,
+    created = Column(DateTime, default=datetime.now())  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated = Column(DateTime)  # TIMESTAMP NULL
+
+    def __init__(self, *args, **kwargs):
+        super(Credentials, self).__init__(*args, **kwargs)
+        self.__dict__.update(kwargs)
+
+    def __repr__(self):
+        return f"{self.__class__}"
+
+    def __str__(self):
+        return "Ребята не стоит вскрывать эту тему...')"
+
+    model = relationship("Model", back_populates="creds")
 
 
 db_session = Session(bind=db_engine)
@@ -537,6 +663,41 @@ def isip(ipaddr: str) -> str:
             logger.error(f"Incorrect ip address: {ip}")
     except ValueError as error:
         logger.error(error)
+
+
+def netmiko_params(dev_type: str,
+                   addr: str,
+                   user: str,
+                   pwd: str,
+                   enable: str
+                   ) -> dict:
+    return {
+        'device_type': dev_type,
+        'host': addr,
+        'username': user,
+        'password': pwd,
+        'secret': enable,
+    }
+
+
+def scrapli_params(dev_driver: str,
+                   transport: str,
+                   addr: str,
+                   user: str,
+                   pwd: str,
+                   enable: str
+                   ) -> dict:
+    return {
+        'host': addr,
+        'auth_username': user,
+        'auth_password': pwd,
+        'auth_secondary': enable,
+        'auth_strict_key': False,
+        'timeout_socket': 300,
+        'timeout_transport': 30,
+        'platform': dev_driver,  # 'cisco_iosxe'
+        'transport': transport,
+    }
 
 
 if __name__ == "__main__":
