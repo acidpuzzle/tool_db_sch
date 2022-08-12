@@ -117,12 +117,13 @@ CREATE TABLE "kms_net"(
     "vlan60" CIDR NULL,
     "vlan70" CIDR NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    UNIQUE ("school_id", "network")
 );
 ALTER TABLE
     "kms_net" ADD PRIMARY KEY("id");
 ALTER TABLE
-    "kms_net" ADD CONSTRAINT "kms_net_network_unique" UNIQUE("network");
+    "kms_net" ADD CONSTRAINT "kms_net_school_id_network_unique" UNIQUE("school_id", "network");
 
 /* MES USERS NETWORK */
 CREATE TABLE "users_net"(
@@ -132,7 +133,8 @@ CREATE TABLE "users_net"(
     "vlan40" CIDR NULL,
     "vlan50" CIDR NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    UNIQUE ("school_id", "network")
 );
 ALTER TABLE
     "users_net" ADD CONSTRAINT "users_net_school_id_network_unique" UNIQUE("school_id", "network");
@@ -145,12 +147,13 @@ CREATE TABLE "rt_net"(
     "school_id" INTEGER NOT NULL,
     "network" CIDR NOT NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    UNIQUE ("school_id", "network")
 );
 ALTER TABLE
     "rt_net" ADD PRIMARY KEY("id");
 ALTER TABLE
-    "rt_net" ADD CONSTRAINT "rt_net_network_unique" UNIQUE("network");
+    "rt_net" ADD CONSTRAINT "rt_net_school_id_network_unique" UNIQUE("school_id", "network");
 
 /* MGTS NETWORK */
 CREATE TABLE "mgts_net"(
@@ -158,12 +161,13 @@ CREATE TABLE "mgts_net"(
     "school_id" INTEGER NOT NULL,
     "network" CIDR NOT NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    UNIQUE ("school_id", "network")
 );
 ALTER TABLE
     "mgts_net" ADD PRIMARY KEY("id");
 ALTER TABLE
-    "mgts_net" ADD CONSTRAINT "mgts_net_network_unique" UNIQUE("network");
+    "mgts_net" ADD CONSTRAINT "mgts_school_id_network_unique" UNIQUE("school_id", "network");
 
 /* WIRELESS LAN CONTROLLER */
 CREATE TABLE "wlc"(
@@ -245,7 +249,8 @@ CREATE TABLE "sch_net"(
     "description" VARCHAR(255) NULL,
     "kms" BOOLEAN DEFAULT FALSE NOT NULL,
     "created" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updated" TIMESTAMP NULL
+    "updated" TIMESTAMP NULL,
+    UNIQUE ("school_id", "network")
 );
 ALTER TABLE
     "sch_net" ADD CONSTRAINT "sch_net_school_id_network_unique" UNIQUE("school_id", "network");

@@ -11,7 +11,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INET, CIDR, MACADDR
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean, UniqueConstraint
 
+
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+
 
 db_url = os.environ.get("NEW_SCHOOL_DATABASE")
 db_engine = create_engine(db_url)
@@ -23,6 +26,8 @@ class School(database):
     School table map
     """
     __tablename__ = 'school'
+
+    """ `school` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
     short_name = Column(String(255))  # VARCHAR(255) NULL
@@ -36,6 +41,20 @@ class School(database):
     updated = Column(DateTime)  # TIMESTAMP NULL
     active = Column(Boolean)  # BOOLEAN NULL
 
+    """ Relationship with other tables """
+    district = relationship("District", back_populates="school")
+    wlc = relationship("WLC", back_populates="schools", uselist=False)
+    router = relationship("Router", back_populates="school")
+    switches = relationship("Switch", back_populates="school")
+    prime = relationship("Prime", back_populates="schools", uselist=False)
+    ap = relationship("AP", back_populates="school")
+    project = relationship("Project", back_populates="schools", uselist=False)
+    kms_net = relationship("KMSNet", back_populates="school", uselist=False)
+    users_net = relationship("UsersNet", back_populates="school", uselist=False)
+    rt_net = relationship("RTNet", back_populates="school", uselist=False)
+    mgts_net = relationship("MGTSNet", back_populates="school", uselist=False)
+    sch_net = relationship("SchNet", back_populates="school")
+
     def __init__(self, *args, **kwargs):
         super(School, self).__init__(*args, **kwargs)
         self.__dict__.update(kwargs)
@@ -46,26 +65,13 @@ class School(database):
     def __str__(self):
         return f"School(name='{self.name}', address='{self.address}')"
 
-    district = relationship("District", back_populates="school")
-    wlc = relationship("WLC", back_populates="schools", uselist=False)
-    router = relationship("Router", back_populates="school")
-    switches = relationship("Switch", back_populates="school")
-    prime = relationship("Prime", back_populates="schools", uselist=False)
-    ap = relationship("AP", back_populates="school")
-    project = relationship("Project", back_populates="schools", uselist=False)
-
-    kms_net = relationship("KMSNet", back_populates="school", uselist=False)
-    users_net = relationship("UsersNet", back_populates="school", uselist=False)
-    rt_net = relationship("RTNet", back_populates="school", uselist=False)
-    mgts_net = relationship("MGTSNet", back_populates="school", uselist=False)
-    sch_net = relationship("SchNet", back_populates="school")
-
 
 class Router(database):
     """
     Routers table map
     """
     __tablename__ = 'router'
+    """ `router` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
@@ -77,6 +83,10 @@ class Router(database):
     updated = Column(DateTime)  # TIMESTAMP NULL
     available = Column(DateTime)  # TIMESTAMP NULL
 
+    """ Relationship with other tables """
+    school = relationship("School", back_populates="router")
+    model = relationship("Model", back_populates="router")
+
     def __init__(self, *args, **kwargs):
         super(Router, self).__init__(*args, **kwargs)
         self.__dict__.update(kwargs)
@@ -86,9 +96,6 @@ class Router(database):
 
     def __str__(self):
         return f"Router(name='{self.name}', ip='{self.ip}')"
-
-    school = relationship("School", back_populates="router")
-    model = relationship("Model", back_populates="router")
 
     def netmiko_params(self):
         return netmiko_params(
@@ -115,10 +122,14 @@ class Vendor(database):
     Device Vedors table map
     """
     __tablename__ = 'vendor'
+    """ `vendor` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated = Column(DateTime)  # TIMESTAMP NULL
+
+    """ Relationship with other tables """
+    model = relationship("Model", back_populates="vendor")
 
     def __init__(self, *args, **kwargs):
         super(Vendor, self).__init__(*args, **kwargs)
@@ -130,14 +141,13 @@ class Vendor(database):
     def __str__(self):
         return f"Vendor(name='{self.name}')"
 
-    model = relationship("Model", back_populates="vendor")
-
 
 class Switch(database):
     """
     Switches table map
     """
     __tablename__ = 'switch'
+    """ `switch` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
     sn = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
@@ -160,6 +170,7 @@ class Switch(database):
     def __str__(self):
         return f"Switch(name='{self.name}', ip='{self.ip}')"
 
+    """ Relationship with other tables """
     school = relationship("School", back_populates="switches")
     model = relationship("Model", back_populates="switch")
 
@@ -188,6 +199,7 @@ class Model(database):
     Device model table map
     """
     __tablename__ = 'model'
+    """ `model` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     vendor_id = Column(Integer, ForeignKey('vendor.id'), nullable=False)  # INTEGER NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
@@ -205,6 +217,7 @@ class Model(database):
     def __str__(self):
         return f"Model(name='{self.name}')"
 
+    """ Relationship with other tables """
     creds = relationship("Credentials", back_populates="model")
     vendor = relationship("Vendor", back_populates="model")
     router = relationship("Router", back_populates="model")
@@ -217,6 +230,7 @@ class District(database):
     District table map
     """
     __tablename__ = 'district'
+    """ `district` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
     name_en = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
@@ -224,6 +238,9 @@ class District(database):
     fqdn = Column(String(255))  # VARCHAR(255) NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated = Column(DateTime)  # TIMESTAMP NULL
+
+    """ Relationship with other tables """
+    school = relationship("School", back_populates="district")
 
     def __init__(self, *args, **kwargs):
         super(District, self).__init__(*args, **kwargs)
@@ -235,14 +252,13 @@ class District(database):
     def __str__(self):
         return f"District(name='{self.name}')"
 
-    school = relationship("School", back_populates="district")
-
 
 class KMSNet(database):
     """
     KMS Networl table map
     """
     __tablename__ = 'kms_net'
+    """ `kms_net` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
     network = Column(CIDR, unique=True, nullable=False)  # CIDR NOT NULL,
@@ -251,6 +267,11 @@ class KMSNet(database):
     vlan70 = Column(CIDR)  # CIDR NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated = Column(DateTime)  # TIMESTAMP NULL
+
+    UniqueConstraint("school_id", "network", name="kms_net_school_id_network_unique")
+
+    """ Relationship with other tables """
+    school = relationship("School", back_populates="kms_net")
 
     def __init__(self, *args, **kwargs):
         super(KMSNet, self).__init__(*args, **kwargs)
@@ -262,14 +283,13 @@ class KMSNet(database):
     def __str__(self):
         return f"KMSNet(network='{self.network}')"
 
-    school = relationship("School", back_populates="kms_net")
-
 
 class UsersNet(database):
     """
     Inner school networl table map
     """
     __tablename__ = 'users_net'
+    """ `users_net` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
     network = Column(CIDR, nullable=False)  # CIDR NOT NULL,
@@ -277,6 +297,11 @@ class UsersNet(database):
     vlan50 = Column(CIDR)  # CIDR NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated = Column(DateTime)  # TIMESTAMP NULL
+
+    UniqueConstraint("school_id", "network", name="users_net_school_id_network_unique")
+
+    """ Relationship with other tables """
+    school = relationship("School", back_populates="users_net")
 
     def __init__(self, *args, **kwargs):
         super(UsersNet, self).__init__(*args, **kwargs)
@@ -288,19 +313,23 @@ class UsersNet(database):
     def __str__(self):
         return f"UsersNet(network='{self.network}')"
 
-    school = relationship("School", back_populates="users_net")
-
 
 class RTNet(database):
     """
     RT Networl tablr map
     """
     __tablename__ = 'rt_net'
+    """ `rt_net` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
     network = Column(CIDR, unique=True, nullable=False)  # CIDR NOT NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # timestamp default now() NOT NULL,
     updated = Column(DateTime)  # timestamp NULL
+
+    UniqueConstraint("school_id", "network", name="rt_net_school_id_network_unique")
+
+    """ Relationship with other tables """
+    school = relationship("School", back_populates="rt_net")
 
     def __init__(self, *args, **kwargs):
         super(RTNet, self).__init__(*args, **kwargs)
@@ -312,19 +341,23 @@ class RTNet(database):
     def __str__(self):
         return f"RTNet(network='{self.network}')"
 
-    school = relationship("School", back_populates="rt_net")
-
 
 class MGTSNet(database):
     """
     MGTS table network
     """
     __tablename__ = 'mgts_net'
+    """ `mgts_net` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
     network = Column(CIDR, unique=True, nullable=False)  # CIDR NOT NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # timestamp default now() NOT NULL,
     updated = Column(DateTime)  # timestamp NULL
+
+    UniqueConstraint("school_id", "network", name="mgts_net_school_id_network_unique")
+
+    """ Relationship with other tables """
+    school = relationship("School", back_populates="mgts_net")
 
     def __init__(self, *args, **kwargs):
         super(MGTSNet, self).__init__(*args, **kwargs)
@@ -336,14 +369,13 @@ class MGTSNet(database):
     def __str__(self):
         return f"MGTSNet(network='{self.network}')"
 
-    school = relationship("School", back_populates="mgts_net")
-
 
 class WLC(database):
     """
     WLC table map
     """
     __tablename__ = 'wlc'
+    """ `wlc` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
     ip = Column(INET, unique=True, nullable=False)  # INET NOT NULL,
@@ -354,6 +386,9 @@ class WLC(database):
     updated = Column(DateTime)  # TIMESTAMP NULL
     available = Column(DateTime)  # TIMESTAMP NULL
 
+    """ Relationship with other tables """
+    schools = relationship("School", back_populates="wlc")
+
     def __init__(self, *args, **kwargs):
         super(WLC, self).__init__(*args, **kwargs)
         self.__dict__.update(kwargs)
@@ -363,8 +398,6 @@ class WLC(database):
 
     def __str__(self):
         return f"WLC(name='{self.name}', ip='{self.ip}')"
-
-    schools = relationship("School", back_populates="wlc")
 
     def netmiko_params(self):
         return netmiko_params(
@@ -391,6 +424,7 @@ class Prime(database):
     Prime controller table map
     """
     __tablename__ = 'prime'
+    """ `prime` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
     ip = Column(INET, unique=True, nullable=False)  # INET NOT NULL,
@@ -398,6 +432,10 @@ class Prime(database):
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated = Column(DateTime)  # TIMESTAMP NULL
     available = Column(DateTime)  # TIMESTAMP NULL
+
+    """ Relationship with other tables """
+    schools = relationship("School", back_populates="prime")
+    stack_master = relationship("Prime")
 
     def __init__(self, *args, **kwargs):
         super(Prime, self).__init__(*args, **kwargs)
@@ -408,9 +446,6 @@ class Prime(database):
 
     def __str__(self):
         return f"Prime(name='{self.name}', ip='{self.ip}')"
-
-    schools = relationship("School", back_populates="prime")
-    stack_master = relationship("Prime")
 
     def netmiko_params(self):
         return netmiko_params(
@@ -437,6 +472,7 @@ class AP(database):
     Access Point table map
     """
     __tablename__ = 'ap'
+    """ `ap` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     mac = Column(MACADDR, unique=True, nullable=False)  # MACADDR NOT NULL,
     sn = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NOT NULL,
@@ -448,6 +484,10 @@ class AP(database):
     updated = Column(DateTime)  # TIMESTAMP NULL
     available = Column(DateTime)  # TIMESTAMP NULL
 
+    """ Relationship with other tables """
+    school = relationship("School", back_populates="ap")
+    model = relationship("Model", back_populates="ap")
+
     def __init__(self, *args, **kwargs):
         super(AP, self).__init__(*args, **kwargs)
         self.__dict__.update(kwargs)
@@ -457,9 +497,6 @@ class AP(database):
 
     def __str__(self):
         return f"AP(name='{self.name}', mac='{self.mac}')"
-
-    school = relationship("School", back_populates="ap")
-    model = relationship("Model", back_populates="ap")
 
     def netmiko_params(self):
         return netmiko_params(
@@ -486,10 +523,14 @@ class Project(database):
     Project year table map
     """
     __tablename__ = 'project'
+    """ `project` table column """
     id = Column(Integer, primary_key=True)  # INTEGER NOT NULL,
     name = Column(String(255), unique=True, nullable=False)  # CHAR(255) NOT NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated = Column(DateTime)  # TIMESTAMP NULL
+
+    """ Relationship with other tables """
+    schools = relationship("School", back_populates="project")
 
     def __init__(self, *args, **kwargs):
         super(Project, self).__init__(*args, **kwargs)
@@ -501,14 +542,13 @@ class Project(database):
     def __str__(self):
         return f"Project(name='{self.name}')"
 
-    schools = relationship("School", back_populates="project")
-
 
 class SchNet(database):
     """
     Project year table map
     """
     __tablename__ = 'sch_net'
+    """ `sch_net` table column """
     id = Column(Integer, primary_key=True)  # INTEGER NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
     network = Column(INET, nullable=False)  # INET NOT NULL,
@@ -518,6 +558,9 @@ class SchNet(database):
     updated = Column(DateTime)  # TIMESTAMP NULL
 
     UniqueConstraint("school_id", "network", name="sch_net_school_id_network_unique")
+
+    """ Relationship with other tables """
+    school = relationship("School", back_populates="sch_net")
 
     def __init__(self, *args, **kwargs):
         super(SchNet, self).__init__(*args, **kwargs)
@@ -529,11 +572,14 @@ class SchNet(database):
     def __str__(self):
         return f"SchNet(network='{self.network}')"
 
-    school = relationship("School", back_populates="sch_net")
-
 
 class Credentials(database):
+    """
+    Guys don't open this thread. You are young,
+    playful, everything is easy for you. It's not that..
+    """
     __tablename__ = 'credentials'
+    """ `credentials` table column """
     id = Column(Integer, primary_key=True)  # INTEGER NOT NULL,
     username = Column(String(255), nullable=False)  # VARCHAR(255) NOT NULL,
     password = Column(String(255), nullable=False)  # VARCHAR(255) NOT NULL,
@@ -544,6 +590,9 @@ class Credentials(database):
     created = Column(DateTime, default=datetime.now())  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated = Column(DateTime)  # TIMESTAMP NULL
 
+    """ Relationship with other tables """
+    model = relationship("Model", back_populates="creds")
+
     def __init__(self, *args, **kwargs):
         super(Credentials, self).__init__(*args, **kwargs)
         self.__dict__.update(kwargs)
@@ -552,9 +601,9 @@ class Credentials(database):
         return f"{self.__class__}"
 
     def __str__(self):
-        return "Ребята не стоит вскрывать эту тему...')"
-
-    model = relationship("Model", back_populates="creds")
+        return ("Guys don't open this thread. You are young, "
+                "playful, everything is easy for you. It's not that.."
+                )
 
 
 db_session = Session(bind=db_engine)
