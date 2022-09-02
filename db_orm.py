@@ -75,14 +75,16 @@ class Router(database):
     """ `router` table column """
     id = Column(Integer, primary_key=True)  # SERIAL NOT NULL,
     school_id = Column(Integer, ForeignKey('school.id'), nullable=False)  # INTEGER NOT NULL,
-    name = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
-    sn = Column(String(255), unique=True, nullable=False)  # VARCHAR(255) NULL,
-    ip = Column(INET, unique=True, nullable=False)  # INET NOT NULL,
+    name = Column(String(255), nullable=False)  # VARCHAR(255) NULL,
+    sn = Column(String(255), nullable=False)  # VARCHAR(255) NULL,
+    ip = Column(INET, nullable=False)  # INET NOT NULL,
     model_id = Column(Integer, ForeignKey('model.id'))  # INTEGER NULL,
     os_version = Column(String(255))  # VARCHAR(255) NULL,
     created = Column(DateTime, default=datetime.now(), nullable=False)  # TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated = Column(DateTime)  # TIMESTAMP NULL
     available = Column(DateTime)  # TIMESTAMP NULL
+
+    UniqueConstraint("name", "sn", "ip", name="router_name_sn_ip_unique")
 
     """ Relationship with other tables """
     school = relationship("School", back_populates="router")
@@ -220,7 +222,7 @@ class Model(database):
 
     """ Relationship with other tables """
     creds = relationship("Credentials", back_populates="model")
-    vendor = relationship("Vendor", back_populates="model")
+    vendor = relationship("Vendor", back_populates="model", uselist=False)
     router = relationship("Router", back_populates="model")
     switch = relationship("Switch", back_populates="model")
     ap = relationship("AP", back_populates="model")
