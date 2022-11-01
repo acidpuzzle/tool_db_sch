@@ -40,11 +40,7 @@ CREATE TABLE "router"(
 ALTER TABLE
     "router" ADD PRIMARY KEY("id");
 ALTER TABLE
-    "router" ADD CONSTRAINT "router_name_unique" UNIQUE("name");
-ALTER TABLE
-    "router" ADD CONSTRAINT "router_sn_unique" UNIQUE("sn");
-ALTER TABLE
-    "router" ADD CONSTRAINT "router_ip_unique" UNIQUE("ip");
+    "router" ADD CONSTRAINT "router_name_sn_ip_unique" UNIQUE("name","sn", "ip");
 
 -- VENDORS
 CREATE TABLE "vendor"(
