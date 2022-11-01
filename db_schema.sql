@@ -1,4 +1,10 @@
-/* SCHOOLS */
+/*
+ *
+ *
+ */
+
+
+-- SCHOOLS
 CREATE TABLE "school"(
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
@@ -18,7 +24,7 @@ ALTER TABLE
 ALTER TABLE
     "school" ADD CONSTRAINT "school_name_unique" UNIQUE("name");
 
-/* ROUTERS */
+-- ROUTERS
 CREATE TABLE "router"(
     "id" SERIAL NOT NULL,
     "school_id" INTEGER NOT NULL,
@@ -40,7 +46,7 @@ ALTER TABLE
 ALTER TABLE
     "router" ADD CONSTRAINT "router_ip_unique" UNIQUE("ip");
 
-/* VENDORS */
+-- VENDORS
 CREATE TABLE "vendor"(
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
@@ -52,7 +58,7 @@ ALTER TABLE
 ALTER TABLE
     "vendor" ADD CONSTRAINT "vendor_name_unique" UNIQUE("name");
 
-/* SWITCHES */
+-- SWITCHES
 CREATE TABLE "switch"(
     "id" SERIAL NOT NULL,
     "school_id" INTEGER NOT NULL,
@@ -75,7 +81,7 @@ ALTER TABLE
 ALTER TABLE
     "switch" ADD CONSTRAINT "switch_ip_unique" UNIQUE("ip");
 
-/* DEVICE MODEL */
+-- DEVICE MODEL
 CREATE TABLE "model"(
     "id" SERIAL NOT NULL,
     "vendor_id" INTEGER NOT NULL,
@@ -89,7 +95,7 @@ ALTER TABLE
 ALTER TABLE
     "model" ADD CONSTRAINT "model_name_unique" UNIQUE("name");
 
-/* DISTRICT AND DOMAIN */
+-- DISTRICT AND DOMAIN
 CREATE TABLE "district"(
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
@@ -108,7 +114,7 @@ ALTER TABLE
 ALTER TABLE
     "district" ADD CONSTRAINT "district_full_name_unique" UNIQUE("full_name");
 
-/* KMS NETWORKS */
+-- KMS NETWORKS
 CREATE TABLE "kms_net"(
     "id" SERIAL NOT NULL,
     "school_id" INTEGER NOT NULL,
@@ -125,7 +131,7 @@ ALTER TABLE
 ALTER TABLE
     "kms_net" ADD CONSTRAINT "kms_net_school_id_network_unique" UNIQUE("school_id", "network");
 
-/* MES USERS NETWORK */
+-- MES USERS NETWORK
 CREATE TABLE "users_net"(
     "id" SERIAL NOT NULL,
     "school_id" INTEGER NOT NULL,
@@ -141,7 +147,7 @@ ALTER TABLE
 ALTER TABLE
     "users_net" ADD PRIMARY KEY("id");
 
-/* RT NETWORK */
+-- RT NETWORK
 CREATE TABLE "rt_net"(
     "id" SERIAL NOT NULL,
     "school_id" INTEGER NOT NULL,
@@ -155,7 +161,7 @@ ALTER TABLE
 ALTER TABLE
     "rt_net" ADD CONSTRAINT "rt_net_school_id_network_unique" UNIQUE("school_id", "network");
 
-/* MGTS NETWORK */
+-- MGTS NETWORK
 CREATE TABLE "mgts_net"(
     "id" SERIAL NOT NULL,
     "school_id" INTEGER NOT NULL,
@@ -169,7 +175,7 @@ ALTER TABLE
 ALTER TABLE
     "mgts_net" ADD CONSTRAINT "mgts_school_id_network_unique" UNIQUE("school_id", "network");
 
-/* WIRELESS LAN CONTROLLER */
+-- WIRELESS LAN CONTROLLER
 CREATE TABLE "wlc"(
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
@@ -192,7 +198,7 @@ ALTER TABLE
 ALTER TABLE
     "wlc" ADD CONSTRAINT "wlc_mgmt_ip_unique" UNIQUE("mgmt_ip");
 
-/* CISCO PRIME CONTROLLER */
+-- CISCO PRIME CONTROLLER
 CREATE TABLE "prime"(
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
@@ -209,7 +215,7 @@ ALTER TABLE
 ALTER TABLE
     "prime" ADD CONSTRAINT "prime_ip_unique" UNIQUE("ip");
 
-/* ACCESS POINTS */
+-- ACCESS POINTS
 CREATE TABLE "ap"(
     "id" SERIAL NOT NULL,
     "mac" MACADDR NOT NULL,
@@ -229,7 +235,7 @@ ALTER TABLE
 ALTER TABLE
     "ap" ADD CONSTRAINT "ap_sn_unique" UNIQUE("sn");
 
-/* PROJECT NAME */
+-- PROJECT NAME
 CREATE TABLE "project"(
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
@@ -241,7 +247,7 @@ ALTER TABLE
 ALTER TABLE
     "project" ADD CONSTRAINT "project_name_unique" UNIQUE("name");
 
-/* SCHOOL, NOT MES, NETWORKS */
+-- SCHOOL, NOT MES, NETWORKS
 CREATE TABLE "sch_net"(
     "id" SERIAL NOT NULL,
     "school_id" INTEGER NOT NULL,
@@ -257,7 +263,7 @@ ALTER TABLE
 ALTER TABLE
     "sch_net" ADD PRIMARY KEY("id");
 
-/* PARAMS FOR REMOTE CONNECTION */
+-- PARAMS FOR REMOTE CONNECTION
 CREATE TABLE "credentials"(
     "id" SERIAL NOT NULL,
     "username" VARCHAR(255) NOT NULL,
@@ -272,7 +278,7 @@ CREATE TABLE "credentials"(
 ALTER TABLE
     "credentials" ADD PRIMARY KEY("id");
 
-/* TABLE RELATIONSHIPS */
+-- TABLE RELATIONSHIPS
 ALTER TABLE
     "switch" ADD CONSTRAINT "switch_school_id_foreign" FOREIGN KEY("school_id") REFERENCES "school"("id");
 ALTER TABLE
@@ -310,7 +316,7 @@ ALTER TABLE
 ALTER TABLE
     "sch_net" ADD CONSTRAINT "sch_net_school_id_foreign" FOREIGN KEY("school_id") REFERENCES "school"("id");
 
-/* UPDATE TRIGGER */
+-- UPDATE TRIGGER
 create function trigger_set_timestamp() returns trigger
     language plpgsql
 as
@@ -326,7 +332,7 @@ END;
 $$;
 alter function trigger_set_timestamp() owner to sch_db_admin;
 
-/* UPDATE TRIGGER TO TABLE */
+-- UPDATE TRIGGER TO TABLE
 create trigger set_timestamp
     before update
     of id, name, short_name, full_name, address, district_id, wlc_id, prime_id, project_id
@@ -431,6 +437,5 @@ create trigger set_timestamp
 execute procedure trigger_set_timestamp();
 
 
-/* USER sch_db_admin database admin */
+-- USER sch_db_admin database admin
 ALTER DATABASE sch_db owner to sch_db_admin ;
-

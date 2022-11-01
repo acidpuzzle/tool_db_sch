@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import logging
 
@@ -19,6 +18,7 @@ logger.addHandler(logging.NullHandler())
 db_url = os.environ.get("NEW_SCHOOL_DATABASE")
 db_engine = create_engine(db_url)
 database = declarative_base(db_engine)
+db_session = Session(bind=db_engine)
 
 
 class School(database):
@@ -604,9 +604,6 @@ class Credentials(database):
         return ("Guys don't open this thread. You are young, "
                 "playful, everything is easy for you. It's not that.."
                 )
-
-
-db_session = Session(bind=db_engine)
 
 
 def create(entity, session=db_session, commit=False, **kwargs):
